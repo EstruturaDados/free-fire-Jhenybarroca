@@ -1,28 +1,31 @@
 /*
- * DESAFIO NÍVEL 1: MOCHILA DE LOOT
- * Descrição: Este programa simula o inventário inicial (mochila) 
- * de um jogador em um jogo de sobrevivência.
- * * Requisitos:
- * - Struct Item (nome, tipo, quantidade)
- * - Vetor de 10 itens
- * - Funções: inserir, remover, listar, buscar
- * - RNFs: Usabilidade, Documentação, Manutenibilidade
+ * DESAFIO NÍVEL 2: VETOR vs. LISTA ENCADEADA
+ * Descrição: Este programa implementa um sistema de inventário usando
+ * duas estruturas de dados (Vetor e Lista Encadeada) para comparar
+ * suas operações e eficiência, especialmente em buscas.
+ *
+ * Requisitos:
+ * - Structs Item e No.
+ * - Implementações paralelas (Vetor, Lista).
+ * - Funções CRUD (Inserir, Remover, Listar, Buscar Seq.) para ambas.
+ * - Funções de Ordenação (Selection Sort) e Busca Binária para o Vetor.
+ * - Contador de comparações para as buscas.
  */
 
-// Bibliotecas necessárias (Instrução)
-#include <stdio.h>    // Para entrada e saída (printf, scanf, fgets)
-#include <string.h>   // Para manipulação de strings (strcmp, strcspn)
-#include <stdlib.h>   // Para limpeza de tela (system)
+// --- 1. Bibliotecas Necessárias (Instrução) ---
+#include <stdio.h>
+#include <stdlib.h>   // Para alocação dinâmica (malloc, free) e system()
+#include <string.h>   // Para manipulação de strings (strcmp, strcpy, strcspn)
+// time.h não será usado, pois o foco é o contador de operações (Req. 6)
 
-// --- Definição da Struct e Globais ---
+// --- 2. Constantes e Definições de Structs ---
 
-// Constante para o tamanho máximo da mochila
+// Tamanho máximo da mochila (Vetor)
 #define TAM_MOCHILA 10
 
 /**
- * @brief (Requisito: Criação da struct)
- * Define a estrutura de dados composta 'Item'.
- * Ela agrega três informações sobre um item coletado.
+ * @brief (Requisito 1: Struct Item)
+ * Define a estrutura de dados para um item coletado.
  */
 struct Item {
     char nome[30];
@@ -30,256 +33,538 @@ struct Item {
     int quantidade;
 };
 
-// Vetor de structs: A mochila em si (Lista Sequencial)
-struct Item mochila[TAM_MOCHILA];
+/**
+ * @brief (Requisito 1: Struct No)
+ * Define o nó da lista encadeada.
+ * Contém o 'Item' e um ponteiro para o próximo nó.
+ */
+struct No {
+    struct Item dados;
+    struct No* proximo;
+};
 
-// Variável global para controlar o número atual de itens na mochila
-int totalItens = 0;
+// --- 3. Variáveis Globais (Estado do Sistema) ---
 
-// --- Protótipos das Funções ---
+// Abordagem 1: Vetor (Lista Sequencial)
+struct Item mochilaVetor[TAM_MOCHILA];
+int totalVetor = 0;        // Controla o número de itens no vetor
+int vetorOrdenado = 0;     // Flag: 0 = Não, 1 = Sim (Req. 5)
 
-// Funções obrigatórias
-void inserirItem();
-void removerItem();
-void listarItens();
-void buscarItem();
+// Abordagem 2: Lista Encadeada
+// 'listaInicio' é o ponteiro de cabeça (head) da lista
+struct No* listaInicio = NULL;
 
-// Funções auxiliares (Manutenibilidade e Usabilidade)
+// Contador de operações (Requisito 6)
+int contadorComparacoes = 0;
+
+// --- 4. Protótipos de Funções (Modularização) ---
+
+// Funções de Utilidade (RNF: Usabilidade)
 void limparBuffer();
-void limparTela();
 void pausarSistema();
+void limparTela();
 
-// --- Função Principal (Fluxo de Execução) ---
+// Menus (RNF: Usabilidade)
+void menuPrincipal();
+void menuVetor();
+void menuLista();
+
+// Funções do VETOR (Requisito 2)
+void inserirItemVetor();
+void removerItemVetor();
+void listarItensVetor();
+void ordenarVetor();           // Requisito 4
+void buscarSequencialVetor();  // Requisito 3
+void buscarBinariaVetor();     // Requisito 5
+
+// Funções da LISTA ENCADEADA (Requisito 2)
+void inserirItemLista();
+void removerItemLista();
+void listarItensLista();
+void buscarSequencialLista();  // Requisito 3
+void liberarLista();           // Boa prática de gerenciamento de memória
+
+// --- 5. Função Principal (Main) ---
 
 int main() {
-    int opcao;
-
-    // O laço 'do-while' garante que o menu seja exibido pelo menos uma vez
-    // e continue executando até que o jogador escolha sair (opção 0)
-    do {
-        limparTela(); // RNF Usabilidade: Mantém a interface limpa
-
-        printf("===================================\n");
-        printf("    MOCHILA DE LOOT (Nivel 1)      \n");
-        printf("===================================\n");
-        printf("Itens na mochila: %d / %d\n", totalItens, TAM_MOCHILA);
-        printf("-----------------------------------\n");
-        printf("1. Adicionar Item\n");
-        printf("2. Remover Item\n");
-        printf("3. Listar Itens\n");
-        printf("4. Buscar Item\n");
-        printf("0. Sair do Jogo\n");
-        printf("-----------------------------------\n");
-        printf("Escolha uma opcao: ");
-        
-        // Leitura de dados 
-        scanf("%d", &opcao);
-        limparBuffer(); // Essencial para limpar o '\n' antes de usar fgets
-
-        // RNF Manutenibilidade: 'switch' organiza o fluxo de execução
-        switch (opcao) {
-            case 1:
-                inserirItem();
-                break;
-            case 2:
-                removerItem();
-                break;
-            case 3:
-                listarItens();
-                break;
-            case 4:
-                buscarItem();
-                break;
-            case 0:
-                printf("\nSaindo do sistema de inventario...\n");
-                break;
-            default:
-                printf("\n[ERRO] Opcao invalida! Tente novamente.\n");
-        }
-
-        if (opcao != 0) {
-            pausarSistema(); // RNF Usabilidade: Pausa para o usuário ler a saída
-        }
-
-    } while (opcao != 0);
-
+    menuPrincipal();
+    liberarLista(); // Limpa a memória alocada pela lista ao sair
     return 0;
 }
 
-// --- Implementação das Funções Obrigatórias ---
+// --- 6. Implementação dos Menus (RNF: Usabilidade) ---
 
 /**
- * @brief (Requisito: Cadastro de itens)
- * Adiciona um novo item ao final da lista sequencial (vetor 'mochila').
- * Verifica se a mochila está cheia antes de adicionar.
+ * @brief Menu principal para selecionar a estrutura de dados.
  */
-void inserirItem() {
-    limparTela();
-    printf("--- 1. Adicionar Novo Item ---\n");
+void menuPrincipal() {
+    int opcao;
+    do {
+        limparTela();
+        printf("=======================================\n");
+        printf("  COMPARATIVO DE ESTRUTURAS DE DADOS\n");
+        printf("=======================================\n");
+        printf("Escolha como gerenciar a mochila:\n\n");
+        printf("1. Mochila (Vetor / Lista Sequencial)\n");
+        printf("2. Mochila (Lista Encadeada)\n");
+        printf("0. Sair do Jogo\n");
+        printf("---------------------------------------\n");
+        printf("Opcao: ");
+        
+        scanf("%d", &opcao);
+        limparBuffer();
 
-    // 1. Verifica se a mochila está cheia
-    if (totalItens >= TAM_MOCHILA) {
-        printf("[ERRO] Mochila cheia! Remova um item antes de adicionar outro.\n");
+        switch (opcao) {
+            case 1:
+                menuVetor();
+                break;
+            case 2:
+                menuLista();
+                break;
+            case 0:
+                printf("\nSaindo do sistema...\n");
+                break;
+            default:
+                printf("\nOpcao invalida! Tente novamente.\n");
+                pausarSistema();
+        }
+    } while (opcao != 0);
+}
+
+/**
+ * @brief Submenu para operações no VETOR.
+ */
+void menuVetor() {
+    int opcao;
+    do {
+        limparTela();
+        printf("--- Mochila (VETOR) [%d/%d] ---\n", totalVetor, TAM_MOCHILA);
+        printf("Status: %s\n", vetorOrdenado ? "Ordenado" : "Nao Ordenado");
+        printf("---------------------------------------\n");
+        printf("1. Adicionar Item\n");
+        printf("2. Remover Item\n");
+        printf("3. Listar Itens\n");
+        printf("4. Ordenar Vetor (Selection Sort)\n");
+        printf("5. Buscar Item (Sequencial)\n");
+        printf("6. Buscar Item (Binaria) %s\n", (vetorOrdenado ? "" : "(Vetor precisa estar ordenado)"));
+        printf("0. Voltar ao Menu Principal\n");
+        printf("---------------------------------------\n");
+        printf("Opcao: ");
+        
+        scanf("%d", &opcao);
+        limparBuffer();
+
+        switch (opcao) {
+            case 1: inserirItemVetor(); break;
+            case 2: removerItemVetor(); break;
+            case 3: listarItensVetor(); break;
+            case 4: ordenarVetor(); break;
+            case 5: buscarSequencialVetor(); break;
+            case 6: buscarBinariaVetor(); break;
+            case 0: break; // Volta ao menu anterior
+            default: printf("\nOpcao invalida!\n");
+        }
+        if (opcao != 0) pausarSistema();
+    } while (opcao != 0);
+}
+
+/**
+ * @brief Submenu para operações na LISTA ENCADEADA.
+ */
+void menuLista() {
+    int opcao;
+    do {
+        limparTela();
+        printf("--- Mochila (LISTA ENCADEADA) ---\n");
+        printf("---------------------------------------\n");
+        printf("1. Adicionar Item (no inicio)\n");
+        printf("2. Remover Item\n");
+        printf("3. Listar Itens\n");
+        printf("4. Buscar Item (Sequencial)\n");
+        printf("0. Voltar ao Menu Principal\n");
+        printf("---------------------------------------\n");
+        printf("Opcao: ");
+        
+        scanf("%d", &opcao);
+        limparBuffer();
+
+        switch (opcao) {
+            case 1: inserirItemLista(); break;
+            case 2: removerItemLista(); break;
+            case 3: listarItensLista(); break;
+            case 4: buscarSequencialLista(); break;
+            case 0: break; // Volta ao menu anterior
+            default: printf("\nOpcao invalida!\n");
+        }
+        if (opcao != 0) pausarSistema();
+    } while (opcao != 0);
+}
+
+// --- 7. Implementação das Funções do VETOR ---
+
+/**
+ * @brief (Req 3: Inserir) Adiciona um item ao vetor.
+ * A inserção desordena o vetor.
+ */
+void inserirItemVetor() {
+    if (totalVetor >= TAM_MOCHILA) {
+        printf("\n[ERRO] Mochila (Vetor) cheia!\n");
         return;
     }
 
-    // 2. Se houver espaço, solicita os dados do novo item
     struct Item novoItem;
-
-    printf("Nome do item (ex: Pistola, Municao 9mm): ");
+    printf("Nome do item: ");
     fgets(novoItem.nome, 30, stdin);
-    novoItem.nome[strcspn(novoItem.nome, "\n")] = 0; // Remove o '\n' do fgets
+    novoItem.nome[strcspn(novoItem.nome, "\n")] = 0;
 
-    printf("Tipo do item (ex: Arma, Municao, Cura): ");
+    printf("Tipo do item: ");
     fgets(novoItem.tipo, 20, stdin);
-    novoItem.tipo[strcspn(novoItem.tipo, "\n")] = 0; // Remove o '\n'
+    novoItem.tipo[strcspn(novoItem.tipo, "\n")] = 0;
 
     printf("Quantidade: ");
     scanf("%d", &novoItem.quantidade);
-    limparBuffer(); // Limpa o buffer após o scanf
+    limparBuffer();
 
-    // 3. Adiciona o item na próxima posição livre e incrementa o contador
-    mochila[totalItens] = novoItem;
-    totalItens++;
-
-    printf("\n[SUCESSO] Item '%s' adicionado a mochila!\n", novoItem.nome);
-
-    // Requisito: Listar após a operação (para o usuário ver o resultado)
-    listarItens();
+    mochilaVetor[totalVetor] = novoItem;
+    totalVetor++;
+    
+    vetorOrdenado = 0; // Inserção quebra a ordenação
+    printf("\n[SUCESSO] Item '%s' adicionado ao vetor.\n", novoItem.nome);
 }
 
 /**
- * @brief (Requisito: Listagem dos itens)
- * Percorre o vetor 'mochila' do início até 'totalItens'
- * e exibe os dados de cada item.
+ * @brief (Req 3: Listar) Exibe todos os itens do vetor.
  */
-void listarItens() {
-    // Se a função foi chamada pelo menu, limpa a tela.
-    // Se foi chamada por outra função (inserir/remover), 
-    // a tela já estará limpa (não precisa limpar de novo).
-    // Para simplificar, vamos padronizar a saída sem limpar a tela aqui.
-    
-    printf("\n--- 3. Itens na Mochila (%d/%d) ---\n", totalItens, TAM_MOCHILA);
+void listarItensVetor() {
+    printf("\n--- Itens no Vetor (%d/%d) ---\n", totalVetor, TAM_MOCHILA);
+    if (totalVetor == 0) {
+        printf("Mochila (Vetor) vazia.\n");
+        return;
+    }
+    for (int i = 0; i < totalVetor; i++) {
+        printf("------------------------\n");
+        printf(" Slot %d (Nome: %s | Tipo: %s | Qtd: %d)\n",
+               i, mochilaVetor[i].nome, mochilaVetor[i].tipo, mochilaVetor[i].quantidade);
+    }
+}
 
-    // 1. Verifica se a mochila está vazia
-    if (totalItens == 0) {
-        printf("A mochila esta vazia.\n");
+/**
+ * @brief (Req 4: Ordenar) Ordena o vetor por nome usando Selection Sort.
+ * Documentação: Selection Sort é eficiente para listas pequenas.
+ * Encontra o menor item e o troca com a posição atual.
+ */
+void ordenarVetor() {
+    if (totalVetor == 0) {
+        printf("\nImpossivel ordenar: mochila vazia.\n");
         return;
     }
 
-    // 2. Itera e exibe todos os itens (Uso de laços - Instrução)
-    for (int i = 0; i < totalItens; i++) {
-        printf("----------------------------------\n");
-        printf(" Slot %d:\n", i + 1);
-        printf("   Nome: %s\n", mochila[i].nome);
-        printf("   Tipo: %s\n", mochila[i].tipo);
-        printf("   Qtd:  %d\n", mochila[i].quantidade);
+    for (int i = 0; i < totalVetor - 1; i++) {
+        int min_idx = i;
+        // Encontra o índice do menor item no restante do vetor
+        for (int j = i + 1; j < totalVetor; j++) {
+            // Compara os nomes
+            if (strcmp(mochilaVetor[j].nome, mochilaVetor[min_idx].nome) < 0) {
+                min_idx = j;
+            }
+        }
+        // Troca o item atual (i) com o menor encontrado (min_idx)
+        if (min_idx != i) {
+            struct Item temp = mochilaVetor[i];
+            mochilaVetor[i] = mochilaVetor[min_idx];
+            mochilaVetor[min_idx] = temp;
+        }
     }
-    printf("----------------------------------\n");
+    
+    vetorOrdenado = 1; // Atualiza a flag
+    printf("\n[SUCESSO] Vetor ordenado por nome (Selection Sort).\n");
+    listarItensVetor();
 }
 
 /**
- * @brief (Requisito: Busca sequencial)
- * Pede um nome ao usuário e varre o vetor 'mochila'
- * comparando nomes. Para ao encontrar o primeiro resultado.
+ * @brief (Req 3: Buscar) Busca sequencial no vetor.
+ * Documentação: Percorre o vetor 1 a 1.
+ * O(N) no pior caso.
  */
-void buscarItem() {
-    limparTela();
-    printf("--- 4. Buscar Item na Mochila ---\n");
-
-    if (totalItens == 0) {
-        printf("A mochila esta vazia. Nao ha o que buscar.\n");
+void buscarSequencialVetor() {
+    if (totalVetor == 0) {
+        printf("\nMochila (Vetor) vazia.\n");
         return;
     }
 
     char nomeBusca[30];
-    printf("Digite o nome do item a buscar: ");
+    printf("Nome do item a buscar: ");
     fgets(nomeBusca, 30, stdin);
-    nomeBusca[strcspn(nomeBusca, "\n")] = 0; // Remove o '\n'
+    nomeBusca[strcspn(nomeBusca, "\n")] = 0;
 
-    int encontrado = 0; // Flag para RNF de Usabilidade
+    contadorComparacoes = 0; // (Req 6: Contador)
+    int encontrado = 0;
 
-    // 1. Implementação da busca sequencial 
-    for (int i = 0; i < totalItens; i++) {
-        // Compara o nome buscado com o nome do item atual (string.h)
-        if (strcmp(nomeBusca, mochila[i].nome) == 0) {
-            printf("\n[SUCESSO] Item encontrado!\n");
-            printf("----------------------------------\n");
-            printf("   Nome: %s\n", mochila[i].nome);
-            printf("   Tipo: %s\n", mochila[i].tipo);
-            printf("   Qtd:  %d\n", mochila[i].quantidade);
-            printf("----------------------------------\n");
-            
+    for (int i = 0; i < totalVetor; i++) {
+        contadorComparacoes++; // Incrementa a cada comparação
+        if (strcmp(mochilaVetor[i].nome, nomeBusca) == 0) {
+            printf("\n[ENCONTRADO - Busca Sequencial]\n");
+            printf("Nome: %s | Tipo: %s | Qtd: %d\n",
+                   mochilaVetor[i].nome, mochilaVetor[i].tipo, mochilaVetor[i].quantidade);
             encontrado = 1;
-            break; // Para a busca após encontrar o primeiro item
+            break;
         }
     }
 
-    // 2. Mensagem de Usabilidade
     if (!encontrado) {
-        printf("\n[ERRO] Item '%s' nao encontrado na mochila.\n", nomeBusca);
+        printf("\n[NAO ENCONTRADO] Item '%s'.\n", nomeBusca);
+    }
+    printf("-> Total de Comparacoes: %d\n", contadorComparacoes);
+}
+
+/**
+ * @brief (Req 5: Busca Binária) Busca binária no vetor.
+ * Documentação: Requer vetor ordenado. Divide o vetor pela metade
+ * a cada passo. O(log N) no pior caso.
+ */
+void buscarBinariaVetor() {
+    if (!vetorOrdenado) {
+        printf("\n[ERRO] A busca binaria exige que o vetor esteja ordenado!\n");
+        printf("Use a opcao 4 para ordenar.\n");
+        return;
+    }
+    if (totalVetor == 0) {
+        printf("\nMochila (Vetor) vazia.\n");
+        return;
+    }
+
+    char nomeBusca[30];
+    printf("Nome do item a buscar (Busca Binaria): ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = 0;
+
+    contadorComparacoes = 0; // (Req 6: Contador)
+    int inicio = 0;
+    int fim = totalVetor - 1;
+    int encontrado = 0;
+
+    while (inicio <= fim) {
+        int meio = inicio + (fim - inicio) / 2; // Evita overflow de (inicio+fim)/2
+        
+        contadorComparacoes++; // (Req 6: Contador)
+        int cmp = strcmp(nomeBusca, mochilaVetor[meio].nome);
+
+        if (cmp == 0) { // Encontrado
+            printf("\n[ENCONTRADO - Busca Binaria]\n");
+            printf("Nome: %s | Tipo: %s | Qtd: %d\n",
+                   mochilaVetor[meio].nome, mochilaVetor[meio].tipo, mochilaVetor[meio].quantidade);
+            encontrado = 1;
+            break;
+        } else if (cmp < 0) { // Item buscado é menor (vem antes)
+            fim = meio - 1;
+        } else { // Item buscado é maior (vem depois)
+            inicio = meio + 1;
+        }
+    }
+
+    if (!encontrado) {
+        printf("\n[NAO ENCONTRADO] Item '%s'.\n", nomeBusca);
+    }
+    printf("-> Total de Comparacoes: %d\n", contadorComparacoes);
+}
+
+/**
+ * @brief (Req 3: Remover) Remove um item do vetor.
+ * Documentação: A remoção em vetor exige deslocamento (shift)
+ * dos elementos posteriores. O(N) no pior caso.
+ */
+void removerItemVetor() {
+    if (totalVetor == 0) {
+        printf("\nMochila (Vetor) vazia.\n");
+        return;
+    }
+
+    char nomeBusca[30];
+    printf("Nome do item a remover: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = 0;
+
+    int index = -1;
+    for (int i = 0; i < totalVetor; i++) {
+        if (strcmp(mochilaVetor[i].nome, nomeBusca) == 0) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        printf("\n[ERRO] Item '%s' nao encontrado para remocao.\n", nomeBusca);
+        return;
+    }
+
+    // Desloca (shift) os elementos para a esquerda
+    for (int i = index; i < totalVetor - 1; i++) {
+        mochilaVetor[i] = mochilaVetor[i + 1];
+    }
+    
+    totalVetor--;
+    vetorOrdenado = 0; // Remoção pode quebrar a ordenação
+    printf("\n[SUCESSO] Item '%s' removido do vetor.\n", nomeBusca);
+}
+
+// --- 8. Implementação das Funções da LISTA ENCADEADA ---
+
+/**
+ * @brief (Req 3: Inserir) Insere um item na lista.
+ * Documentação: A inserção ocorre no início da lista.
+ * Esta é uma operação O(1) (tempo constante).
+ */
+void inserirItemLista() {
+    // 1. Aloca memória para o novo nó
+    struct No* novoNo = (struct No*)malloc(sizeof(struct No));
+    if (novoNo == NULL) {
+        printf("\n[ERRO FATAL] Falha ao alocar memoria (malloc)!\n");
+        return;
+    }
+
+    // 2. Coleta os dados do item
+    printf("Nome do item: ");
+    fgets(novoNo->dados.nome, 30, stdin);
+    novoNo->dados.nome[strcspn(novoNo->dados.nome, "\n")] = 0;
+
+    printf("Tipo do item: ");
+    fgets(novoNo->dados.tipo, 20, stdin);
+    novoNo->dados.tipo[strcspn(novoNo->dados.tipo, "\n")] = 0;
+
+    printf("Quantidade: ");
+    scanf("%d", &novoNo->dados.quantidade);
+    limparBuffer();
+
+    // 3. Insere no início da lista
+    novoNo->proximo = listaInicio;
+    listaInicio = novoNo;
+
+    printf("\n[SUCESSO] Item '%s' adicionado a lista.\n", novoNo->dados.nome);
+}
+
+/**
+ * @brief (Req 3: Listar) Exibe todos os itens da lista.
+ * Documentação: Percorre a lista nó a nó, do início (head) ao fim.
+ */
+void listarItensLista() {
+    printf("\n--- Itens na Lista Encadeada ---\n");
+    if (listaInicio == NULL) {
+        printf("Mochila (Lista) vazia.\n");
+        return;
+    }
+
+    struct No* atual = listaInicio;
+    int i = 1;
+    while (atual != NULL) {
+        printf("------------------------\n");
+        printf(" No %d (Nome: %s | Tipo: %s | Qtd: %d)\n",
+               i, atual->dados.nome, atual->dados.tipo, atual->dados.quantidade);
+        atual = atual->proximo;
+        i++;
     }
 }
 
 /**
- * @brief (Requisito: Remoção de itens)
- * Localiza um item pelo nome e o remove.
- * Para remover de um vetor, os itens subsequentes são "puxados"
- * uma posição para a esquerda.
+ * @brief (Req 3: Buscar) Busca sequencial na lista.
+ * Documentação: Percorre a lista nó a nó.
+ * O(N) no pior caso.
  */
-void removerItem() {
-    limparTela();
-    printf("--- 2. Remover Item da Mochila ---\n");
-
-    if (totalItens == 0) {
-        printf("A mochila esta vazia. Nao ha o que remover.\n");
+void buscarSequencialLista() {
+    if (listaInicio == NULL) {
+        printf("\nMochila (Lista) vazia.\n");
         return;
     }
 
-    char nomeRemover[30];
-    printf("Digite o nome do item a remover: ");
-    fgets(nomeRemover, 30, stdin);
-    nomeRemover[strcspn(nomeRemover, "\n")] = 0; // Remove o '\n'
+    char nomeBusca[30];
+    printf("Nome do item a buscar: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = 0;
 
-    int indexParaRemover = -1; // -1 significa "não encontrado"
+    contadorComparacoes = 0; // (Req 6: Contador)
+    struct No* atual = listaInicio;
+    int encontrado = 0;
 
-    // 1. Buscar o índice do item 
-    for (int i = 0; i < totalItens; i++) {
-        if (strcmp(nomeRemover, mochila[i].nome) == 0) {
-            indexParaRemover = i;
-            break; // Encontrou, pode parar de procurar
+    while (atual != NULL) {
+        contadorComparacoes++; // Incrementa a cada comparação
+        if (strcmp(atual->dados.nome, nomeBusca) == 0) {
+            printf("\n[ENCONTRADO - Busca Sequencial]\n");
+            printf("Nome: %s | Tipo: %s | Qtd: %d\n",
+                   atual->dados.nome, atual->dados.tipo, atual->dados.quantidade);
+            encontrado = 1;
+            break;
         }
+        atual = atual->proximo;
     }
 
-    // 2. Verificar se foi encontrado
-    if (indexParaRemover == -1) {
-        printf("\n[ERRO] Item '%s' nao encontrado na mochila.\n", nomeRemover);
+    if (!encontrado) {
+        printf("\n[NAO ENCONTRADO] Item '%s'.\n", nomeBusca);
+    }
+    printf("-> Total de Comparacoes: %d\n", contadorComparacoes);
+}
+
+/**
+ * @brief (Req 3: Remover) Remove um item da lista.
+ * Documentação: Requer dois ponteiros (atual e anterior)
+ * para "religar" a lista após a remoção. O(N) para buscar, O(1) para remover.
+ */
+void removerItemLista() {
+    if (listaInicio == NULL) {
+        printf("\nMochila (Lista) vazia.\n");
         return;
     }
 
-    // 3. Remover o item (sobrescrevendo com os itens seguintes)
-    // Este laço "puxa" todos os elementos da frente para trás
-    // (Uso de laços)
-    for (int i = indexParaRemover; i < totalItens - 1; i++) {
-        mochila[i] = mochila[i + 1];
+    char nomeBusca[30];
+    printf("Nome do item a remover: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = 0;
+
+    struct No* atual = listaInicio;
+    struct No* anterior = NULL;
+
+    // Procura o nó
+    while (atual != NULL && strcmp(atual->dados.nome, nomeBusca) != 0) {
+        anterior = atual;
+        atual = atual->proximo;
     }
 
-    // 4. Decrementar o contador total de itens
-    totalItens--;
+    // Se atual == NULL, o item não foi encontrado
+    if (atual == NULL) {
+        printf("\n[ERRO] Item '%s' nao encontrado para remocao.\n", nomeBusca);
+        return;
+    }
 
-    printf("\n[SUCESSO] Item '%s' removido da mochila.\n", nomeRemover);
+    // Caso 1: O item a remover é o primeiro (listaInicio)
+    if (anterior == NULL) {
+        listaInicio = atual->proximo;
+    }
+    // Caso 2: O item está no meio ou fim
+    else {
+        anterior->proximo = atual->proximo;
+    }
 
-    // Requisito: Listar após a operação
-    listarItens();
+    // Libera a memória do nó removido
+    free(atual);
+    printf("\n[SUCESSO] Item '%s' removido da lista.\n", nomeBusca);
+}
+
+/**
+ * @brief Libera toda a memória alocada dinamicamente pela lista.
+ */
+void liberarLista() {
+    struct No* atual = listaInicio;
+    while (atual != NULL) {
+        struct No* temp = atual; // Guarda o nó atual
+        atual = atual->proximo;  // Avança para o próximo
+        free(temp);              // Libera o nó guardado
+    }
+    listaInicio = NULL;
 }
 
 
-// --- Funções Auxiliares (RNF: Usabilidade) ---
+// --- 9. Implementação das Funções de Utilidade ---
 
 /**
  * @brief Limpa o buffer de entrada (stdin).
- * Essencial após usar scanf() para ler números, antes de usar fgets()
- * para ler strings, para consumir o caractere '\n' (Enter) restante.
  */
 void limparBuffer() {
     int c;
@@ -287,10 +572,15 @@ void limparBuffer() {
 }
 
 /**
- * @brief Limpa a tela do console.
- * Utiliza diretivas de pré-processamento para funcionar
- * tanto no Windows ("cls") quanto em sistemas baseados
- * em Unix ("clear").
+ * @brief Pausa a execução e aguarda o usuário pressionar Enter.
+ */
+void pausarSistema() {
+    printf("\nPressione Enter para continuar...");
+    limparBuffer();
+}
+
+/**
+ * @brief Limpa a tela do console (portátil).
  */
 void limparTela() {
     #ifdef _WIN32
@@ -300,12 +590,3 @@ void limparTela() {
     #endif
 }
 
-/**
- * @brief Pausa a execução e aguarda o usuário pressionar Enter.
- * Melhora a usabilidade, permitindo que o usuário leia a 
- * saída de uma operação antes de retornar ao menu principal.
- */
-void pausarSistema() {
-    printf("\nPressione Enter para continuar...");
-    limparBuffer(); // Aguarda o Enter
-}
